@@ -46,8 +46,9 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "CHANGE_ME_GITHUB_USER",
-      "repo": "snip-n-share"
+      "owner": "phpandrew",
+      "repo": "snip-n-share",
+      "releaseType": "release"
     }
   }
 }

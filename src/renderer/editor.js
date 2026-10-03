@@ -50,17 +50,21 @@ function applyOp(ctx, op) {
     ctx.fillStyle = op.color;
     ctx.fillRect(op.x, op.y, op.w, op.h);
   } else if (op.type === 'blur') {
-    // Pixelate: downscale the region, then upscale with smoothing off.
-    const px = Math.max(2, op.amount);
-    const sw = Math.max(1, Math.round(op.w / px)), sh = Math.max(1, Math.round(op.h / px));
-    const tmp = document.createElement('canvas');
-    tmp.width = sw; tmp.height = sh;
-    const t = tmp.getContext('2d');
-    t.imageSmoothingEnabled = true;
-    t.drawImage(ctx.canvas, op.x, op.y, op.w, op.h, 0, 0, sw, sh);
+    // Gaussian blur, clipped to the rectangle. Amount = blur radius in px.
+    // Render from a snapshot of the current canvas so the blur samples the
+    // surrounding pixels at the edges instead of bleeding transparency.
+    const radius = Math.max(1, op.amount);
+    const snap = document.createElement('canvas');
+    snap.width = ctx.canvas.width; snap.height = ctx.canvas.height;
+    snap.getContext('2d').drawImage(ctx.canvas, 0, 0);
     ctx.save();
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(tmp, 0, 0, sw, sh, op.x, op.y, op.w, op.h);
+    ctx.beginPath();
+    ctx.rect(op.x, op.y, op.w, op.h);
+    ctx.clip();
+    ctx.filter = `blur(${radius}px)`;
+    // Two passes so text is reliably unreadable even at low radius.
+    ctx.drawImage(snap, 0, 0);
+    ctx.drawImage(ctx.canvas, 0, 0);
     ctx.restore();
   }
 }
