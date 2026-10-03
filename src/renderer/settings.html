@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Snip n Share — Settings</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  body { display: flex; height: 100vh; overflow: hidden; }
+  nav { width: 160px; background: #18181c; border-right: 1px solid #2c2c33; padding: 12px 0; display: flex; flex-direction: column; }
+  nav button { background: none; border: 0; border-radius: 0; text-align: left; padding: 10px 18px; color: #bbb; font-size: 14px; }
+  nav button.active { background: #26262c; color: #fff; border-left: 3px solid #3b82f6; }
+  nav .foot { margin-top: auto; padding: 12px 18px; color: #666; font-size: 11px; }
+  main { flex: 1; overflow: auto; padding: 20px 28px; }
+  section { display: none; max-width: 640px; }
+  section.active { display: block; }
+  h2 { margin: 0 0 14px; font-size: 18px; font-weight: 600; }
+  h3 { margin: 22px 0 8px; font-size: 14px; color: #ddd; border-bottom: 1px solid #333; padding-bottom: 4px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row input[type=text], .row input[type=password], .row input[type=url] { flex: 1; }
+  .check { display: flex; align-items: center; gap: 8px; margin: 8px 0; color: #ddd; }
+  .check input { width: 16px; height: 16px; }
+  .msg { font-size: 12px; margin-top: 6px; min-height: 16px; color: #9ad; }
+  .msg.err { color: #f87171; }
+  .msg.ok { color: #4ade80; }
+  .help { color: #888; font-size: 12px; margin: 4px 0 8px; }
+  .host { border: 1px solid #333; border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
+  .host.active { border-color: #3b82f6; }
+  .host header { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+  .host header input { width: 16px; height: 16px; }
+  #hist { display: flex; flex-direction: column; gap: 8px; }
+  .item { display: flex; gap: 12px; align-items: center; background: #26262c; border-radius: 8px; padding: 8px; }
+  .item img { width: 120px; height: 68px; object-fit: contain; background: #111; border-radius: 4px; }
+  .item .meta { flex: 1; min-width: 0; }
+  .item .url { font-size: 12px; color: #7fb3ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+  .item .sub { font-size: 11px; color: #888; }
+  .item .acts { display: flex; gap: 4px; }
+  .item .acts button { padding: 4px 8px; font-size: 12px; }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+  .toolbar .spacer { flex: 1; }
+  .empty { color: #777; padding: 30px; text-align: center; }
+</style>
+</head>
+<body>
+  <nav>
+    <button data-tab="general" class="active">General</button>
+    <button data-tab="upload">Upload</button>
+    <button data-tab="history">History</button>
+    <button data-tab="updates">Updates</button>
+    <div class="foot">Snip n Share<br><span id="ver"></span></div>
+  </nav>
+  <main>
+    <!-- GENERAL -->
+    <section id="tab-general" class="active">
+      <h2>General</h2>
+      <label>Capture hotkey</label>
+      <div class="row">
+        <input type="text" id="hotkey" placeholder="Control+Alt+PrintScreen">
+        <button id="hotkeySave">Apply</button>
+        <button id="captureNow" title="Try a capture now">Capture now</button>
+      </div>
+      <div class="help">Electron accelerator syntax, e.g. <code>Control+Alt+PrintScreen</code>, <code>Control+Shift+S</code>, <code>Alt+F12</code>.</div>
+      <div class="msg" id="hotkeyMsg"></div>
+
+      <h3>Output</h3>
+      <div class="row">
+        <label style="margin:0">Default format</label>
+        <select id="format"><option value="jpg">JPG (smaller, easiest to share)</option><option value="png">PNG (lossless)</option></select>
+        <label style="margin:0 0 0 12px">JPG quality</label>
+        <input type="number" id="jpegQuality" min="30" max="100" style="width:64px">
+      </div>
+      <div class="check"><input type="checkbox" id="showEditor"><label style="margin:0" for="showEditor">Show the editor after capture (uncheck to upload instantly)</label></div>
+      <div class="check"><input type="checkbox" id="keepLocalCopy"><label style="margin:0" for="keepLocalCopy">Keep a local copy of every capture in the history folder</label></div>
+
+      <h3>Startup</h3>
+      <div class="check"><input type="checkbox" id="launchAtStartup"><label style="margin:0" for="launchAtStartup">Launch Snip n Share when I sign in to Windows</label></div>
+      <div class="msg" id="generalMsg"></div>
+    </section>
+
+    <!-- UPLOAD -->
+    <section id="tab-upload">
+      <h2>Upload hosts</h2>
+      <div class="help">Pick the host that receives captures. The returned URL is copied to your clipboard.</div>
+
+      <div class="host" id="host-custom">
+        <header><input type="radio" name="activeHost" value="custom" id="ah-custom"><label for="ah-custom" style="margin:0">Custom host (g84.bid)</label></header>
+        <label>Upload URL</label>
+        <div class="row"><input type="url" id="customUrl" placeholder="https://g84.bid/snsupload.php"></div>
+        <label>API key</label>
+        <div class="row">
+          <input type="password" id="customKey" placeholder="same value as API_KEY in snsupload.php">
+          <button id="customTest">Test</button>
+        </div>
+        <div class="help">Deploy <code>server/snsupload.php</code> to your web root and create a writable <code>i/</code> folder beside it.</div>
+        <div class="msg" id="customMsg"></div>
+      </div>
+
+      <div class="host" id="host-dropbox">
+        <header><input type="radio" name="activeHost" value="dropbox" id="ah-dropbox"><label for="ah-dropbox" style="margin:0">Dropbox</label></header>
+        <label>App key</label>
+        <div class="row"><input type="text" id="dbxKey" placeholder="from dropbox.com/developers/apps"></div>
+        <label>Folder in Dropbox</label>
+        <div class="row"><input type="text" id="dbxFolder" placeholder="/SnipNShare"></div>
+        <div class="help">
+          Create an app at <a href="#" data-ext="https://www.dropbox.com/developers/apps">dropbox.com/developers/apps</a>
+          (Scoped access · App folder is fine). Under Permissions enable
+          <code>files.content.write</code>, <code>sharing.write</code>, <code>sharing.read</code>, <code>account_info.read</code>.
+          Links are rewritten from <code>?dl=0</code> to <code>?raw=1</code> so they open as the image directly.
+          Access tokens are refreshed automatically using the long-lived refresh token.
+        </div>
+        <div id="dbxDisconnected">
+          <div class="row">
+            <button id="dbxConnect">1. Connect (opens browser)</button>
+            <input type="text" id="dbxCode" placeholder="2. paste the code Dropbox shows you">
+            <button id="dbxFinish" class="primary">3. Finish</button>
+          </div>
+        </div>
+        <div id="dbxConnected" style="display:none">
+          <div class="row"><span>Connected as <b id="dbxEmail"></b></span><button id="dbxDisconnect" class="danger">Disconnect</button></div>
+        </div>
+        <div class="msg" id="dbxMsg"></div>
+      </div>
+      <div class="msg" id="uploadMsg"></div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="tab-history">
+      <h2>History</h2>
+      <div class="toolbar">
+        <button id="histFolder">Open history folder</button>
+        <div class="spacer"></div>
+        <button id="histClear" class="danger">Clear all</button>
+      </div>
+      <div id="hist"></div>
+    </section>
+
+    <!-- UPDATES -->
+    <section id="tab-updates">
+      <h2>Updates</h2>
+      <p>Current version: <b id="ver2"></b></p>
+      <div class="check"><input type="checkbox" id="autoCheckUpdates"><label style="margin:0" for="autoCheckUpdates">Check for updates automatically on startup</label></div>
+      <div class="row"><button id="checkUpdates" class="primary">Check for updates now</button></div>
+      <div class="msg" id="updMsg"></div>
+      <div class="help">Updates are downloaded from the GitHub Releases page configured in <code>package.json</code> (<code>build.publish</code>).</div>
+    </section>
+  </main>
+  <script src="settings.js"></script>
+</body>
+</html>

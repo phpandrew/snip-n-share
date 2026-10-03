@@ -1,0 +1,53 @@
+{
+  "name": "snip-n-share",
+  "productName": "Snip n Share",
+  "version": "0.1.0",
+  "description": "Hotkey screen capture, quick edit, upload, URL on clipboard.",
+  "main": "src/main/main.js",
+  "author": "Andrew",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --win --dir",
+    "dist": "electron-builder --win",
+    "release": "electron-builder --win --publish always"
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "build": {
+    "appId": "bid.g84.snipnshare",
+    "productName": "Snip n Share",
+    "artifactName": "SnipNShare-Setup-${version}.${ext}",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "runAfterFinish": true
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "CHANGE_ME_GITHUB_USER",
+      "repo": "snip-n-share"
+    }
+  }
+}

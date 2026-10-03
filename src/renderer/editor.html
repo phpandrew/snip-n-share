@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Snip n Share</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  #toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #26262c; border-bottom: 1px solid #333; flex-wrap: wrap; }
+  #toolbar .sep { width: 1px; height: 24px; background: #444; margin: 0 4px; }
+  #toolbar .spacer { flex: 1; }
+  .tool { padding: 6px 12px; }
+  .tool.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+  #stage { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 16px; background:
+    repeating-conic-gradient(#232328 0% 25%, #1e1e22 0% 50%) 0 0 / 24px 24px; }
+  #wrap { position: relative; line-height: 0; box-shadow: 0 4px 24px rgba(0,0,0,.6); }
+  canvas { display: block; }
+  #draw { position: absolute; inset: 0; cursor: crosshair; }
+  input[type=color] { width: 36px; height: 30px; padding: 2px; border-radius: 6px; border: 1px solid #444; background: #1e1e22; cursor: pointer; }
+  #status { font-size: 12px; color: #aaa; min-width: 120px; }
+  #status.err { color: #f87171; }
+  #blurAmt { width: 90px; }
+  kbd { font: 11px monospace; color: #999; }
+</style>
+</head>
+<body>
+  <div id="toolbar">
+    <button class="tool active" data-tool="box" title="Draw a solid box to block out content">■ Box</button>
+    <input type="color" id="color" value="#000000" title="Box colour">
+    <button class="tool" data-tool="blur" title="Pixelate / blur an area">▦ Blur</button>
+    <input type="range" id="blurAmt" min="4" max="40" value="12" title="Blur strength">
+    <div class="sep"></div>
+    <button id="undo" title="Undo (Ctrl+Z)">↶ Undo</button>
+    <button id="clear" title="Remove all edits">Reset</button>
+    <div class="sep"></div>
+    <select id="format" title="Output format">
+      <option value="jpg">JPG</option>
+      <option value="png">PNG</option>
+    </select>
+    <input type="number" id="quality" min="30" max="100" value="90" style="width:60px" title="JPG quality">
+    <div class="spacer"></div>
+    <span id="status"></span>
+    <button id="copy" title="Copy image to clipboard (Ctrl+C)">Copy image</button>
+    <button id="save" title="Save to file (Ctrl+S)">Save…</button>
+    <button id="upload" class="primary" title="Upload and copy URL (Enter)">⬆ Upload &amp; copy URL</button>
+    <button id="cancel" title="Esc">✕</button>
+  </div>
+  <div id="stage">
+    <div id="wrap">
+      <canvas id="base"></canvas>
+      <canvas id="draw"></canvas>
+    </div>
+  </div>
+  <script src="editor.js"></script>
+</body>
+</html>

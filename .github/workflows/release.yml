@@ -1,0 +1,32 @@
+# Builds the Windows installer and publishes it to a GitHub Release.
+# Trigger: push a tag like v0.1.0 (make sure package.json "version" matches).
+#   git tag v0.1.0 && git push origin v0.1.0
+# Output: SnipNShare-Setup-0.1.0.exe + latest.yml (needed by the in-app updater).
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build and publish installer
+        run: npm run release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
