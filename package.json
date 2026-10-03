@@ -1,7 +1,7 @@
 {
   "name": "snip-n-share",
   "productName": "Snip n Share",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Hotkey screen capture, quick edit, upload, URL on clipboard.",
   "main": "src/main/main.js",
   "author": "Andrew",
