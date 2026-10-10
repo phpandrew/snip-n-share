@@ -35,6 +35,7 @@ async function load() {
   $('keepLocalCopy').checked = S.keepLocalCopy;
   $('launchAtStartup').checked = S.launchAtStartup;
   $('autoCheckUpdates').checked = S.autoCheckUpdates;
+  renderToolToggles();
 
   document.querySelector(`input[name=activeHost][value=${S.activeHost}]`).checked = true;
   markActiveHost();
@@ -77,6 +78,30 @@ $('showEditor').addEventListener('change', () => save({ showEditor: $('showEdito
 $('keepLocalCopy').addEventListener('change', () => save({ keepLocalCopy: $('keepLocalCopy').checked }, 'generalMsg'));
 $('launchAtStartup').addEventListener('change', () => save({ launchAtStartup: $('launchAtStartup').checked }, 'generalMsg'));
 $('autoCheckUpdates').addEventListener('change', () => save({ autoCheckUpdates: $('autoCheckUpdates').checked }));
+
+const TOOLS = [
+  ['pen', 'Pen (freehand)', 'P'], ['highlight', 'Highlighter', 'H'], ['arrow', 'Arrow', 'A'],
+  ['rect', 'Rectangle outline', 'R'], ['box', 'Solid box (block out)', 'B'], ['text', 'Text', 'T'],
+  ['step', 'Numbered steps', 'N'], ['blur', 'Blur', 'U'], ['crop', 'Crop', 'C']
+];
+function renderToolToggles() {
+  const root = $('toolToggles');
+  root.innerHTML = '';
+  const on = new Set(S.enabledTools || TOOLS.map((t) => t[0]));
+  for (const [id, label, key] of TOOLS) {
+    const row = document.createElement('div');
+    row.className = 'check';
+    row.innerHTML = `<input type="checkbox" id="tool-${id}"><label style="margin:0" for="tool-${id}">${label} <span style="color:#777">(${key})</span></label>`;
+    const cb = row.querySelector('input');
+    cb.checked = on.has(id);
+    cb.addEventListener('change', async () => {
+      const list = TOOLS.map((t) => t[0]).filter((t) => $(`tool-${t}`).checked);
+      if (!list.length) { cb.checked = true; msg('generalMsg', 'Keep at least one tool enabled.', 'err'); return; }
+      await save({ enabledTools: list }, 'generalMsg');
+    });
+    root.appendChild(row);
+  }
+}
 
 // ---------- upload ----------
 document.querySelectorAll('input[name=activeHost]').forEach((r) => r.addEventListener('change', async () => {

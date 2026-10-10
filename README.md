@@ -62,10 +62,16 @@ Share links are rewritten `?dl=0` → `?raw=1` so they load as the image directl
 |---------|------------------------|------------------------------|
 | Global  | Ctrl + Alt + PrtScn    | Start capture (configurable) |
 | Overlay | drag / click / Esc     | select / whole monitor / cancel |
-| Editor  | B / U                  | Box tool / Blur tool         |
-| Editor  | Ctrl+Z                 | Undo                         |
-| Editor  | Enter                  | Upload & copy URL            |
+| Editor  | P H A R B T N U C      | Pen, Highlighter, Arrow, Rectangle, solid Box, Text, Numbered step, blUr, Crop |
+| Editor  | 1–8                    | Colour swatches              |
+| Editor  | [ / ]                  | Smaller / bigger (blur: weaker / stronger) |
+| Editor  | Ctrl+Z / Ctrl+Y        | Undo / Redo                  |
+| Editor  | Enter                  | Upload & copy URL (in Crop: apply crop) |
 | Editor  | Ctrl+C / Ctrl+S / Esc  | Copy image / Save / Cancel   |
+
+Colour and size changes apply to the annotation you just drew until you switch tools.
+Tool, colour, size, blur strength and output format are remembered between captures.
+Tools can be hidden in Settings → General → Editor tools.
 
 ## Layout
 

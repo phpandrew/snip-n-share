@@ -144,7 +144,9 @@ function openEditor(image) {
       height,
       format: cfg.format,
       jpegQuality: cfg.jpegQuality,
-      activeHost: cfg.activeHost
+      activeHost: cfg.activeHost,
+      prefs: cfg.editor,
+      enabledTools: cfg.enabledTools
     });
   });
   editorWin.on('closed', () => { editorWin = null; });
@@ -244,6 +246,14 @@ ipcMain.handle('editor:saveAs', async (_e, { dataUrl, format }) => {
   if (r.canceled || !r.filePath) return { ok: false };
   fs.writeFileSync(r.filePath, Buffer.from(dataUrl.split(',')[1], 'base64'));
   return { ok: true, path: r.filePath };
+});
+
+ipcMain.on('editor:savePrefs', (_e, prefs) => settings.set({ editor: prefs }));
+ipcMain.on('editor:saveOutput', (_e, patch) => {
+  const p = {};
+  if (patch.format === 'jpg' || patch.format === 'png') p.format = patch.format;
+  if (Number.isFinite(patch.jpegQuality)) p.jpegQuality = patch.jpegQuality;
+  settings.set(p);
 });
 
 ipcMain.on('editor:cancel', () => {

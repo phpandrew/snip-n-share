@@ -71,6 +71,10 @@
       <div class="check"><input type="checkbox" id="showEditor"><label style="margin:0" for="showEditor">Show the editor after capture (uncheck to upload instantly)</label></div>
       <div class="check"><input type="checkbox" id="keepLocalCopy"><label style="margin:0" for="keepLocalCopy">Keep a local copy of every capture in the history folder</label></div>
 
+      <h3>Editor tools</h3>
+      <div class="help">Untick tools you don't use; they're hidden from the editor toolbar.</div>
+      <div id="toolToggles" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px"></div>
+
       <h3>Startup</h3>
       <div class="check"><input type="checkbox" id="launchAtStartup"><label style="margin:0" for="launchAtStartup">Launch Snip n Share when I sign in to Windows</label></div>
       <div class="msg" id="generalMsg"></div>

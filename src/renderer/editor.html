@@ -6,38 +6,57 @@
 <link rel="stylesheet" href="shared.css">
 <style>
   body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-  #toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #26262c; border-bottom: 1px solid #333; flex-wrap: wrap; }
+  #toolbar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: #26262c; border-bottom: 1px solid #333; flex-wrap: wrap; }
   #toolbar .sep { width: 1px; height: 24px; background: #444; margin: 0 4px; }
   #toolbar .spacer { flex: 1; }
-  .tool { padding: 6px 12px; }
-  .tool.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+  .group { display: flex; gap: 2px; background: #1b1b20; border: 1px solid #3a3a42; border-radius: 8px; padding: 2px; }
+  .tool { padding: 5px 9px; border: 0; background: transparent; border-radius: 6px; min-width: 34px; font-size: 14px; }
+  .tool:hover { background: #33333b; }
+  .tool.active { background: #3b82f6; color: #fff; }
+  .swatches { display: flex; gap: 4px; align-items: center; }
+  .sw { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #1e1e22; box-shadow: 0 0 0 1px #555; cursor: pointer; padding: 0; }
+  .sw.active { box-shadow: 0 0 0 2px #fff; }
+  input[type=color] { width: 28px; height: 26px; padding: 1px; border-radius: 6px; border: 1px solid #444; background: #1e1e22; cursor: pointer; }
+  .slider { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #aaa; }
+  .slider input { width: 90px; }
+  .slider b { color: #ddd; font-weight: 600; min-width: 14px; text-align: right; }
   #stage { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 16px; background:
     repeating-conic-gradient(#232328 0% 25%, #1e1e22 0% 50%) 0 0 / 24px 24px; }
   #wrap { position: relative; line-height: 0; box-shadow: 0 4px 24px rgba(0,0,0,.6); }
   canvas { display: block; }
   #draw { position: absolute; inset: 0; cursor: crosshair; }
-  input[type=color] { width: 36px; height: 30px; padding: 2px; border-radius: 6px; border: 1px solid #444; background: #1e1e22; cursor: pointer; }
-  #status { font-size: 12px; color: #aaa; min-width: 120px; }
+  #textInput { position: absolute; display: none; background: rgba(0,0,0,.25); border: 1px dashed #4da3ff; outline: none;
+    padding: 0 2px; margin: 0; font-weight: 700; font-family: "Segoe UI", system-ui, sans-serif; line-height: 1.2; min-width: 40px; z-index: 5; }
+  #status { font-size: 12px; color: #aaa; }
   #status.err { color: #f87171; }
-  #blurAmt { width: 90px; }
-  kbd { font: 11px monospace; color: #999; }
 </style>
 </head>
 <body>
   <div id="toolbar">
-    <button class="tool active" data-tool="box" title="Draw a solid box to block out content">■ Box</button>
-    <input type="color" id="color" value="#000000" title="Box colour">
-    <button class="tool" data-tool="blur" title="Pixelate / blur an area">▦ Blur</button>
-    <input type="range" id="blurAmt" min="1" max="20" value="6" step="1" title="Blur strength">
+    <div class="group" id="tools">
+      <button class="tool" data-tool="pen" title="Pen — freehand (P)">✎</button>
+      <button class="tool" data-tool="highlight" title="Highlighter (H)">▬</button>
+      <button class="tool" data-tool="arrow" title="Arrow (A)">➚</button>
+      <button class="tool" data-tool="rect" title="Rectangle outline (R)">▢</button>
+      <button class="tool" data-tool="box" title="Solid box — block out (B)">■</button>
+      <button class="tool" data-tool="text" title="Text (T)">T</button>
+      <button class="tool" data-tool="step" title="Numbered step (N)">①</button>
+      <button class="tool" data-tool="blur" title="Blur (U)">▦</button>
+      <button class="tool" data-tool="crop" title="Crop — drag the edges in, Enter to apply (C)">⛶</button>
+    </div>
+    <div class="swatches" id="swatches"></div>
+    <input type="color" id="color" title="Custom colour">
+    <label class="slider" id="sliderWrap"><span id="sliderLabel">Size</span><input type="range" id="slider" min="1" max="10" step="1"><b id="sliderVal"></b></label>
     <div class="sep"></div>
-    <button id="undo" title="Undo (Ctrl+Z)">↶ Undo</button>
+    <button id="undo" title="Undo (Ctrl+Z)">↶</button>
+    <button id="redo" title="Redo (Ctrl+Y)">↷</button>
     <button id="clear" title="Remove all edits">Reset</button>
     <div class="sep"></div>
     <select id="format" title="Output format">
       <option value="jpg">JPG</option>
       <option value="png">PNG</option>
     </select>
-    <input type="number" id="quality" min="30" max="100" value="90" style="width:60px" title="JPG quality">
+    <input type="number" id="quality" min="30" max="100" value="90" style="width:58px" title="JPG quality">
     <div class="spacer"></div>
     <span id="status"></span>
     <button id="copy" title="Copy image to clipboard (Ctrl+C)">Copy image</button>
@@ -49,6 +68,7 @@
     <div id="wrap">
       <canvas id="base"></canvas>
       <canvas id="draw"></canvas>
+      <input id="textInput" type="text" spellcheck="false">
     </div>
   </div>
   <script src="editor.js"></script>

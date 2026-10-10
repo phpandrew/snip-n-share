@@ -5,5 +5,7 @@ contextBridge.exposeInMainWorld('editor', {
   upload: (payload) => ipcRenderer.invoke('editor:upload', payload),
   copyImage: (payload) => ipcRenderer.invoke('editor:copyImage', payload),
   saveAs: (payload) => ipcRenderer.invoke('editor:saveAs', payload),
+  savePrefs: (prefs) => ipcRenderer.send('editor:savePrefs', prefs),
+  saveOutput: (patch) => ipcRenderer.send('editor:saveOutput', patch),
   cancel: () => ipcRenderer.send('editor:cancel')
 });

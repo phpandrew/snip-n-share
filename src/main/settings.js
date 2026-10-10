@@ -13,6 +13,8 @@ const DEFAULTS = {
   showEditor: true,         // false = upload immediately after selection
   activeHost: 'custom',     // 'custom' | 'dropbox'
   autoCheckUpdates: true,
+  editor: { tool: 'pen', color: '#ff3b30', size: 3, blur: 5 },   // last-used editor settings
+  enabledTools: ['pen', 'highlight', 'arrow', 'rect', 'box', 'text', 'step', 'blur', 'crop'],
   custom: {
     uploadUrl: 'https://g84.bid/snsupload.php',
     apiKey: ''
