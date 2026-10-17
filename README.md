@@ -4,6 +4,10 @@ Hotkey → freeze screen → drag a box → (optional) block-out / blur → uplo
 
 Electron app for Windows. Uploads to your own host (`g84.bid/snsupload.php`) or Dropbox.
 
+## About
+
+Created by Andrew Lyle — [@phpandrew](https://github.com/phpandrew).
+
 ## Run from source
 
 ```
@@ -21,17 +25,25 @@ Produces `dist/SnipNShare-Setup-<version>.exe` (NSIS installer, per-user, with u
 
 ## Releases + in-app updates
 
-1. Create the GitHub repo and set `build.publish.owner` / `repo` in `package.json`.
-2. Bump `version` in `package.json`, commit, then:
-   ```
-   git tag v0.1.1
-   git push origin main --tags
-   ```
-3. `.github/workflows/release.yml` builds on `windows-latest` and attaches
-   `SnipNShare-Setup-0.1.1.exe` + `latest.yml` to a GitHub Release.
-   The installed app checks that release feed (Settings → Updates, or on startup).
+Every push to `main` is built and released by `.github/workflows/release.yml`
+(Windows runner → `SnipNShare-Setup-X.Y.Z.exe`, `.blockmap`, `latest.yml` on a GitHub Release).
+Installed copies pick it up on startup or from About → Check for updates.
 
-The release is created as a draft by electron-builder — publish it on GitHub when you're ready.
+Version numbers:
+
+- `VERSION` (repo root) is the base, e.g. `0.1.3`.
+- If that version isn't released yet, it's used as-is. Otherwise the patch counts up from the
+  newest release in that line: 0.1.4, 0.1.5, …
+- To start a new line, set `VERSION` to `0.2.0` (or `1.0.0`) and push.
+
+Not every push needs a release:
+
+- Commits that only touch `*.md`, `*.bat`, `.gitignore` or `server/` don't build.
+- Put `[skip release]` in a commit message to skip that one.
+- The workflow can also be run by hand from the Actions tab.
+
+`release.bat` commits everything and pushes (`release.bat "message"`, or
+`release.bat 0.2.0 "message"` to set a new base version). `build.bat` builds locally.
 
 ## Your own host (g84.bid)
 

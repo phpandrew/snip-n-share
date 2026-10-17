@@ -56,6 +56,7 @@ function createTray() {
     { label: 'History', click: () => openSettings('history') },
     { label: 'Settings', click: () => openSettings('general') },
     { label: 'Check for updates', click: () => updater.check(true) },
+    { label: 'About', click: () => openSettings('about') },
     { type: 'separator' },
     { label: `v${app.getVersion()}`, enabled: false },
     { label: 'Quit', click: () => app.quit() }

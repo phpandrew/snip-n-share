@@ -1,21 +1,43 @@
-# Builds the Windows installer and publishes it to a GitHub Release.
-# Trigger: push a tag like v0.1.2 (release.bat does the bump + tag + push).
-# Output on the release: SnipNShare-Setup-x.y.z.exe, .exe.blockmap, latest.yml
+# Builds the Windows installer and publishes a GitHub Release on every push to main.
+#
+# Version numbering:
+#   VERSION (repo root) is the base version, e.g. 0.1.3.
+#   - If v<VERSION> isn't released yet, that exact version is built.
+#   - Otherwise the patch number counts up from the newest release in that
+#     major.minor line (0.1.3 released -> 0.1.4, then 0.1.5, ...).
+#   To start a new line (0.2.0, 1.0.0), edit VERSION.
+#
+# Skip a release for a commit by putting [skip release] in its message.
+# Commits that only touch docs or the PHP upload script don't trigger a build.
+#
+# Release assets: SnipNShare-Setup-X.Y.Z.exe, .exe.blockmap, latest.yml
 # (latest.yml is what the in-app updater reads).
 name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'server/**'
+      - '.gitignore'
+      - '*.bat'
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   build-windows:
+    if: ${{ !contains(github.event.head_commit.message, '[skip release]') }}
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
 
@@ -24,24 +46,50 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Work out version
+        id: ver
+        run: |
+          BASE=$(tr -d ' \r\n' < VERSION)
+          TAGS=$(git ls-remote --tags --refs origin 'v*' | sed 's#.*refs/tags/v##')
+          V=$(BASE="$BASE" TAGS="$TAGS" node -e '
+            const parse = (s) => { const m = /^(\d+)\.(\d+)\.(\d+)$/.exec(s); return m && m.slice(1).map(Number); };
+            const base = parse(process.env.BASE);
+            if (!base) { console.error("VERSION must look like 1.2.3, got: " + process.env.BASE); process.exit(1); }
+            const tags = process.env.TAGS.split(/\s+/).map(parse).filter(Boolean);
+            const key = (v) => v.join(".");
+            const taken = new Set(tags.map(key));
+            if (!taken.has(key(base))) { console.log(key(base)); process.exit(0); }
+            const line = tags.filter((t) => t[0] === base[0] && t[1] === base[1]);
+            const top = Math.max(base[2], ...line.map((t) => t[2]));
+            console.log(`${base[0]}.${base[1]}.${top + 1}`);
+          ')
+          echo "Releasing v$V (VERSION base: $BASE)"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
       - run: npm ci
 
-      - name: Build installer (no publish - we upload ourselves)
+      - name: Stamp version into package.json
+        run: npm version "${{ steps.ver.outputs.version }}" --no-git-tag-version --allow-same-version
+
+      - name: Build installer
         run: npx electron-builder --win --publish never
 
       - name: Verify artifacts
-        shell: bash
         run: |
           ls -la dist
           test -f dist/latest.yml || { echo "latest.yml missing"; exit 1; }
-          ls dist/SnipNShare-Setup-*.exe >/dev/null || { echo "installer missing"; exit 1; }
+          test -f "dist/SnipNShare-Setup-${{ steps.ver.outputs.version }}.exe" || { echo "installer missing"; exit 1; }
 
-      - name: Create / update GitHub release
+      - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: v${{ steps.ver.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          make_latest: true
+          fail_on_unmatched_files: true
           files: |
             dist/SnipNShare-Setup-*.exe
             dist/SnipNShare-Setup-*.exe.blockmap
             dist/latest.yml
-          fail_on_unmatched_files: true
-          make_latest: true

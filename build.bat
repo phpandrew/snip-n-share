@@ -21,11 +21,12 @@ where node >nul 2>&1 || (echo [!] Node installed but not on PATH yet - close thi
 :node_ok
 for /f "delims=" %%v in ('node -v') do echo [*] Node %%v
 
-:: ---------- Optional version bump: build.bat 0.1.1 ----------
-if not "%~1"=="" (
-    echo [*] Setting version to %~1
-    call npm version %~1 --no-git-tag-version --allow-same-version >nul || (echo [!] version bump failed & pause & exit /b 1)
-)
+:: ---------- Version: build.bat 0.1.4 sets VERSION first; otherwise VERSION is used as-is ----------
+if not "%~1"=="" (>VERSION echo %~1)
+set /p VER=<VERSION
+echo [*] Version %VER% (from VERSION)
+for /f "delims=" %%v in ('node -p "require('./package.json').version"') do set PKGVER=%%v
+if not "%PKGVER%"=="%VER%" call npm version %VER% --no-git-tag-version --allow-same-version >nul 2>&1
 
 :: ---------- Dependencies: install if missing or package.json changed ----------
 set NEED_INSTALL=0
@@ -45,7 +46,6 @@ if "%NEED_INSTALL%"=="1" (
 )
 
 :: ---------- Build ----------
-for /f "delims=" %%v in ('node -p "require('./package.json').version"') do set VER=%%v
 echo [*] Building Snip n Share v%VER% ...
 call npm run dist || (echo [!] Build failed & pause & exit /b 1)
 

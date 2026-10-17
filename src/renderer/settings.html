@@ -37,6 +37,8 @@
   .item .acts button { padding: 4px 8px; font-size: 12px; }
   .toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
   .toolbar .spacer { flex: 1; }
+  .about-head { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; }
+  .about-head img { border-radius: 14px; }
   .empty { color: #777; padding: 30px; text-align: center; }
 </style>
 </head>
@@ -45,7 +47,7 @@
     <button data-tab="general" class="active">General</button>
     <button data-tab="upload">Upload</button>
     <button data-tab="history">History</button>
-    <button data-tab="updates">Updates</button>
+    <button data-tab="about">About</button>
     <div class="foot">Snip n Share<br><span id="ver"></span></div>
   </nav>
   <main>
@@ -137,14 +139,26 @@
       <div id="hist"></div>
     </section>
 
-    <!-- UPDATES -->
-    <section id="tab-updates">
-      <h2>Updates</h2>
-      <p>Current version: <b id="ver2"></b></p>
+    <!-- ABOUT -->
+    <section id="tab-about">
+      <div class="about-head">
+        <img src="../../assets/icon.png" alt="" width="64" height="64">
+        <div>
+          <h2 style="margin:0">Snip n Share</h2>
+          <div style="color:#aaa">Version <b id="ver2" style="color:#ddd"></b></div>
+        </div>
+      </div>
+      <p>Hotkey screen capture with quick annotation, one-click upload and the link on your clipboard.</p>
+      <p>Created by <b>Andrew Lyle</b> &middot; <a href="#" data-ext="https://github.com/phpandrew">@phpandrew</a></p>
+      <p><a href="#" data-ext="https://github.com/phpandrew/snip-n-share">github.com/phpandrew/snip-n-share</a>
+        &middot; <a href="#" data-ext="https://github.com/phpandrew/snip-n-share/releases">Release notes</a>
+        &middot; <a href="#" data-ext="https://github.com/phpandrew/snip-n-share/issues">Report an issue</a></p>
+
+      <h3>Updates</h3>
       <div class="check"><input type="checkbox" id="autoCheckUpdates"><label style="margin:0" for="autoCheckUpdates">Check for updates automatically on startup</label></div>
-      <div class="row"><button id="checkUpdates" class="primary">Check for updates now</button></div>
+      <div class="row"><button id="checkUpdates" class="primary">Check for updates</button></div>
       <div class="msg" id="updMsg"></div>
-      <div class="help">Updates are downloaded from the GitHub Releases page configured in <code>package.json</code> (<code>build.publish</code>).</div>
+      <div class="help">Updates come from GitHub Releases and install on restart.</div>
     </section>
   </main>
   <script src="settings.js"></script>

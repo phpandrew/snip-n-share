@@ -1,45 +1,44 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title Snip n Share - release
+title Snip n Share - commit and release
 
-for /f "delims=" %%v in ('node -p "require('./package.json').version"') do set CUR=%%v
+:: Every push to main is built and released by GitHub Actions; the patch number
+:: counts up automatically. Pass a version only to start a new line:
+::   release.bat                         commit + push (next patch)
+::   release.bat "Fixed crop handles"    same, with that message
+::   release.bat 0.2.0 "Big update"      set VERSION to 0.2.0 first
 
-set VER=%~1
+set /p CUR=<VERSION
+set ARG1=%~1
 set MSG=%~2
-if "%VER%"=="" (
-    echo Current version: %CUR%
-    set /p VER=New version ^(e.g. 0.1.3^): 
-)
-if "%VER%"=="" (echo [!] No version entered. & goto :fail)
-if "%VER%"=="%CUR%" (echo [!] %VER% is already the current version - pick a higher one. & goto :fail)
-if "%MSG%"=="" set /p MSG=Commit message for your changes ^(Enter for "v%VER%"^): 
-if "%MSG%"=="" set MSG=v%VER%
+echo %ARG1%| findstr /r "^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$" >nul
+if errorlevel 1 (set MSG=%~1& set ARG1=)
 
-git rev-parse -q --verify "refs/tags/v%VER%" >nul && (echo [!] Tag v%VER% already exists. & goto :fail)
+if not "%ARG1%"=="" (
+    echo [*] Base version %CUR% -^> %ARG1%
+    >VERSION echo %ARG1%
+)
 
 git add -A
-git diff --cached --quiet || (echo [*] Committing your changes... & git commit -qm "%MSG%" || goto :fail)
+git diff --cached --quiet && (echo [*] Nothing to commit. & goto :push)
+if "%MSG%"=="" set /p MSG=What changed? 
+if "%MSG%"=="" set MSG=Update
+git commit -qm "%MSG%" || goto :fail
 
-echo [*] Bumping version %CUR% -^> %VER%
-call npm version %VER% --no-git-tag-version --allow-same-version >nul || goto :fail
-git add package.json package-lock.json
-git commit -qm "Release v%VER%" || goto :fail
-git tag v%VER% || goto :fail
-
+:push
 echo [*] Pushing...
 git push || goto :fail
-git push origin v%VER% || goto :fail
 
 echo.
-echo [OK] v%VER% pushed. GitHub is building it now (~2-5 min):
+echo [OK] Pushed. GitHub is building the release now (~2-5 min):
 echo      https://github.com/phpandrew/snip-n-share/actions
-echo      Then installed copies get it via Check for updates.
+echo      Installed copies then get it via Check for updates.
 pause
 exit /b 0
 
 :fail
 echo.
-echo [!] Release stopped.
+echo [!] Stopped.
 pause
 exit /b 1
