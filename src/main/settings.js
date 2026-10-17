@@ -1,5 +1,5 @@
 // Tiny JSON settings store in app.getPath('userData')/settings.json
-const { app } = require('electron');
+const { app, safeStorage } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
@@ -47,14 +47,41 @@ function deepMerge(base, over) {
   return out;
 }
 
+// Secrets are encrypted on disk with Windows DPAPI (tied to your Windows account) via safeStorage.
+// In memory they're plain text. Older plain-text values are read as-is and encrypted on the next save.
+const SECRETS = [['custom', 'apiKey'], ['dropbox', 'accessToken'], ['dropbox', 'refreshToken']];
+const canEncrypt = () => { try { return safeStorage.isEncryptionAvailable(); } catch { return false; } };
+
+function mapSecrets(obj, fn) {
+  const out = JSON.parse(JSON.stringify(obj));
+  for (const [a, b] of SECRETS) if (out[a] && typeof out[a][b] === 'string' && out[a][b]) out[a][b] = fn(out[a][b]);
+  return out;
+}
+function decrypt(v) {
+  if (!v.startsWith('enc:')) return v;
+  try { return safeStorage.decryptString(Buffer.from(v.slice(4), 'base64')); } catch { return ''; }
+}
+function encrypt(v) {
+  return canEncrypt() ? 'enc:' + safeStorage.encryptString(v).toString('base64') : v;
+}
+
 function load() {
   if (cache) return cache;
+  let raw = null;
   try {
-    cache = deepMerge(DEFAULTS, JSON.parse(fs.readFileSync(file(), 'utf8')));
+    raw = JSON.parse(fs.readFileSync(file(), 'utf8'));
+    cache = deepMerge(DEFAULTS, mapSecrets(raw, decrypt));
   } catch {
     cache = JSON.parse(JSON.stringify(DEFAULTS));
   }
+  // Migrate any plain-text secrets from older versions.
+  if (raw && canEncrypt() && SECRETS.some(([a, b]) => raw[a] && raw[a][b] && !String(raw[a][b]).startsWith('enc:'))) persist();
   return cache;
+}
+
+function persist() {
+  fs.mkdirSync(path.dirname(file()), { recursive: true });
+  fs.writeFileSync(file(), JSON.stringify(mapSecrets(cache, encrypt), null, 2));
 }
 
 function get() {
@@ -63,8 +90,7 @@ function get() {
 
 function set(patch) {
   cache = deepMerge(load(), patch);
-  fs.mkdirSync(path.dirname(file()), { recursive: true });
-  fs.writeFileSync(file(), JSON.stringify(cache, null, 2));
+  persist();
   return cache;
 }
 

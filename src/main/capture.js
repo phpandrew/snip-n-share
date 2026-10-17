@@ -36,6 +36,7 @@ function makeOverlay(display) {
       preload: path.join(__dirname, '..', 'preload', 'overlay.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
       backgroundThrottling: false
     }
   });

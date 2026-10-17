@@ -24,6 +24,22 @@ let currentHotkey = null;
 
 app.setAppUserModelId('bid.g84.snipnshare'); // needed for Windows toasts
 
+// Only ever hand http(s) links to the OS - never file:, javascript: or custom protocol handlers.
+function openLink(url) {
+  try {
+    const u = new URL(String(url));
+    if (u.protocol === 'https:' || u.protocol === 'http:') return shell.openExternal(u.toString());
+  } catch {}
+  return Promise.resolve();
+}
+
+// No app window may open new windows or navigate away from its own page.
+app.on('web-contents-created', (_e, wc) => {
+  wc.setWindowOpenHandler(() => ({ action: 'deny' }));
+  wc.on('will-navigate', (e) => e.preventDefault());
+  wc.on('will-attach-webview', (e) => e.preventDefault());
+});
+
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
@@ -133,7 +149,8 @@ function openEditor(image) {
     webPreferences: {
       preload: path.join(PRELOAD, 'editor.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      sandbox: true
     }
   });
   editorWin.loadFile(path.join(RENDERER, 'editor.html'));
@@ -181,7 +198,7 @@ async function finalize(buffer, format, size) {
   });
   if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('history:changed');
 
-  toast('Ready to paste', url, () => shell.openExternal(url));
+  toast('Ready to paste', url, () => openLink(url));
   return { url, item };
 }
 
@@ -212,7 +229,8 @@ function openSettings(tab = 'general') {
     webPreferences: {
       preload: path.join(PRELOAD, 'settings.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      sandbox: true
     }
   });
   settingsWin.loadFile(path.join(RENDERER, 'settings.html'));
@@ -262,7 +280,15 @@ ipcMain.on('editor:cancel', () => {
 });
 
 // ---------- IPC: settings ----------
-ipcMain.handle('settings:get', () => ({ ...settings.get(), version: app.getVersion(), hotkeyRegistered: !!currentHotkey }));
+ipcMain.handle('settings:get', () => {
+  const s = settings.get();
+  return {
+    ...s,
+    dropbox: { ...s.dropbox, accessToken: '', refreshToken: s.dropbox.refreshToken ? 'connected' : '' },
+    version: app.getVersion(),
+    hotkeyRegistered: !!currentHotkey
+  };
+});
 
 ipcMain.handle('settings:set', (_e, patch) => {
   const before = settings.get();
@@ -288,13 +314,16 @@ ipcMain.handle('dropbox:begin', async (_e, appKey) => {
   try {
     settings.set({ dropbox: { appKey } });
     const url = dropbox.beginAuth(appKey);
-    shell.openExternal(url);
+    openLink(url);
     return { ok: true };
   } catch (e) { return { ok: false, error: e.message }; }
 });
 
 ipcMain.handle('dropbox:finish', async (_e, { appKey, code }) => {
-  try { return { ok: true, dropbox: await dropbox.finishAuth(appKey, code) }; }
+  try {
+    const d = await dropbox.finishAuth(appKey, code);
+    return { ok: true, dropbox: { ...d, accessToken: '', refreshToken: d.refreshToken ? 'connected' : '' } };
+  }
   catch (e) { return { ok: false, error: e.message }; }
 });
 
@@ -304,10 +333,10 @@ ipcMain.handle('history:list', () => history.list());
 ipcMain.handle('history:remove', (_e, id) => history.remove(id));
 ipcMain.handle('history:clear', () => { history.clear(); return []; });
 ipcMain.handle('history:copy', (_e, url) => { clipboard.writeText(url); return true; });
-ipcMain.handle('history:open', (_e, url) => shell.openExternal(url));
+ipcMain.handle('history:open', (_e, url) => openLink(url));
 ipcMain.handle('history:showFile', (_e, p) => shell.showItemInFolder(p));
 ipcMain.handle('history:openFolder', () => shell.openPath(history.dir()));
 
 ipcMain.handle('updater:check', () => { updater.check(true); return true; });
 ipcMain.handle('app:capture', () => { startCapture(); return true; });
-ipcMain.handle('app:openExternal', (_e, url) => shell.openExternal(url));
+ipcMain.handle('app:openExternal', (_e, url) => openLink(url));

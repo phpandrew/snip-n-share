@@ -1,0 +1,47 @@
+# Checks every pull request (including Dependabot's) before it can be merged:
+#  - flags newly added dependencies with known vulnerabilities
+#  - makes sure the app still installs, parses and packages on Windows
+# Nothing is published from here; releases only come from pushes to main.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
+    permissions:
+      contents: read
+      pull-requests: write
+
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Syntax check
+        run: |
+          for f in $(git ls-files 'src/**/*.js'); do node --check "$f" || exit 1; done
+      - name: Audit shipped dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: Package (no installer, no publish)
+        run: npx electron-builder --win --dir --publish never

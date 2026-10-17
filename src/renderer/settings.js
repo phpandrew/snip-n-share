@@ -158,18 +158,30 @@ async function loadHistory() {
   for (const it of items) {
     const div = document.createElement('div');
     div.className = 'item';
-    div.innerHTML = `
-      <img src="file:///${it.thumb.replace(/\\/g, '/')}" alt="">
-      <div class="meta">
-        <div class="url" title="Click to copy">${it.url || '(not uploaded)'}</div>
-        <div class="sub">${fmtDate(it.ts)} · ${it.width}×${it.height} ${it.format.toUpperCase()} · ${it.host || ''}</div>
-      </div>
-      <div class="acts">
-        <button data-a="copy" ${it.url ? '' : 'disabled'}>Copy URL</button>
-        <button data-a="open" ${it.url ? '' : 'disabled'}>Open</button>
-        <button data-a="file" ${it.file ? '' : 'disabled'} title="Show local file">File</button>
-        <button data-a="del" class="danger">✕</button>
-      </div>`;
+    const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+    const thumb = el('img');
+    thumb.alt = '';
+    thumb.src = 'file:///' + encodeURI(String(it.thumb).replace(/\\/g, '/'));
+    const meta = el('div', 'meta');
+    meta.append(
+      Object.assign(el('div', 'url', it.url || '(not uploaded)'), { title: 'Click to copy' }),
+      el('div', 'sub', `${fmtDate(it.ts)} · ${Number(it.width)}×${Number(it.height)} ${String(it.format).toUpperCase()} · ${it.host || ''}`)
+    );
+    const acts = el('div', 'acts');
+    const btn = (a, label, enabled, cls, title) => {
+      const b = el('button', cls, label);
+      b.dataset.a = a;
+      b.disabled = !enabled;
+      if (title) b.title = title;
+      return b;
+    };
+    acts.append(
+      btn('copy', 'Copy URL', !!it.url),
+      btn('open', 'Open', !!it.url),
+      btn('file', 'File', !!it.file, '', 'Show local file'),
+      btn('del', '✕', true, 'danger')
+    );
+    div.append(thumb, meta, acts);
     div.querySelector('.url').addEventListener('click', () => it.url && window.api.historyCopy(it.url));
     div.querySelector('[data-a=copy]').addEventListener('click', () => window.api.historyCopy(it.url));
     div.querySelector('[data-a=open]').addEventListener('click', () => window.api.historyOpen(it.url));

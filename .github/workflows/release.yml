@@ -22,6 +22,9 @@ on:
       - 'server/**'
       - '.gitignore'
       - '*.bat'
+      - '.github/dependabot.yml'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/codeql.yml'
   workflow_dispatch:
 
 permissions:

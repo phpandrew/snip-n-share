@@ -1,0 +1,38 @@
+# Dependabot opens pull requests for outdated or vulnerable dependencies.
+# Each PR is built by .github/workflows/ci.yml before you merge it; merging to
+# main then ships a new release through release.yml.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Toronto
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    commit-message:
+      prefix: deps
+    groups:
+      # Electron major versions change Chromium/Node underneath the app - review on their own.
+      electron:
+        patterns: [electron]
+      # Everything else that's a minor/patch bump arrives as one PR.
+      minor-and-patch:
+        update-types: [minor, patch]
+        exclude-patterns: [electron]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Toronto
+    labels: [dependencies, ci]
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
