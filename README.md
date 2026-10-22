@@ -45,6 +45,44 @@ Not every push needs a release:
 `release.bat` commits everything and pushes (`release.bat "message"`, or
 `release.bat 0.2.0 "message"` to set a new base version). `build.bat` builds locally.
 
+## Code signing (Azure Trusted Signing)
+
+Unsigned builds trigger Windows SmartScreen on install. The release workflow signs the installer
+automatically once the Azure secrets below exist; until then builds are simply unsigned.
+
+Azure Trusted Signing is Microsoft's cloud signing service (Basic plan US$9.99/month, 5,000
+signatures). Individuals in the US and Canada can be validated with government ID; the certificate
+is issued in your legal name and the key never leaves Azure. One-time setup, ~30 minutes plus the
+identity-validation wait:
+
+1. **Azure account** at portal.azure.com with a payment method on the subscription.
+2. **Trusted Signing account** → search "Trusted Signing" in the portal → Create. Region East US or
+   West US (closest with the service), SKU **Basic**. Note the **Account URI** on its Overview page,
+   e.g. `https://eus.codesigning.azure.net` — that's `AZURE_SIGN_ENDPOINT`.
+3. **Identity validation** (on the account) → New identity → **Individual**. Legal name, address,
+   email; you'll be sent to a verification partner to scan your ID. Usually a day or two.
+4. **Certificate profile** → Create → type **Public Trust**, pick the validated identity, name it
+   e.g. `snip-n-share` — that's `AZURE_SIGN_PROFILE`. The account name is `AZURE_SIGN_ACCOUNT`.
+5. **App registration** for GitHub: Microsoft Entra ID → App registrations → New (`snip-n-share-ci`).
+   Copy the **Application (client) ID** → `AZURE_CLIENT_ID` and **Directory (tenant) ID** →
+   `AZURE_TENANT_ID`. Certificates & secrets → New client secret (expiry 24 months) → copy the
+   **Value** immediately → `AZURE_CLIENT_SECRET`.
+6. **Give the app signing rights:** Trusted Signing account → Access control (IAM) → Add role
+   assignment → role **Trusted Signing Certificate Profile Signer** → assign to `snip-n-share-ci`.
+7. **GitHub secrets:** repo → Settings → Secrets and variables → Actions → New repository secret,
+   for each of `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_SIGN_ENDPOINT`,
+   `AZURE_SIGN_ACCOUNT`, `AZURE_SIGN_PROFILE`, and `AZURE_SIGN_PUBLISHER` = the name exactly as
+   validated in step 3 (the certificate's CN, e.g. `Andrew Lyle`).
+8. Push a release. The job log shows `Code signing: ON`, and the "Verify signature" step prints the
+   signer; the installer's Properties → Digital Signatures tab shows your name.
+
+`AZURE_SIGN_PUBLISHER` matters beyond cosmetics: the installed app checks that each downloaded
+update is signed by that name before installing it, so a compromised GitHub account alone can no
+longer push a malicious update. Existing unsigned installs accept the first signed update normally.
+
+SmartScreen reputation still builds up over the first few weeks of downloads, but with a validated
+identity it clears far faster than an unsigned app and the "Unknown publisher" box is gone from day one.
+
 ## Your own host (g84.bid)
 
 1. Copy `server/snsupload.php` to the web root → `https://g84.bid/snsupload.php`.

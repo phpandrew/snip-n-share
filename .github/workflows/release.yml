@@ -12,6 +12,14 @@
 #
 # Release assets: SnipNShare-Setup-X.Y.Z.exe, .exe.blockmap, latest.yml
 # (latest.yml is what the in-app updater reads).
+#
+# Code signing (Azure Trusted Signing) switches on automatically when these repo
+# secrets exist - see README "Code signing". Without them the build is unsigned.
+#   AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET   (service principal)
+#   AZURE_SIGN_ENDPOINT    e.g. https://eus.codesigning.azure.net
+#   AZURE_SIGN_ACCOUNT     Trusted Signing account name
+#   AZURE_SIGN_PROFILE     certificate profile name
+#   AZURE_SIGN_PUBLISHER   certificate subject, e.g. CN=Andrew Lyle, O=Andrew Lyle, L=Cambridge, S=Ontario, C=CA
 name: Release
 
 on:
@@ -42,9 +50,9 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -74,7 +82,34 @@ jobs:
       - name: Stamp version into package.json
         run: npm version "${{ steps.ver.outputs.version }}" --no-git-tag-version --allow-same-version
 
+      - name: Configure code signing (only if the Azure secrets are set)
+        id: sign
+        env:
+          ENDPOINT: ${{ secrets.AZURE_SIGN_ENDPOINT }}
+          ACCOUNT: ${{ secrets.AZURE_SIGN_ACCOUNT }}
+          PROFILE: ${{ secrets.AZURE_SIGN_PROFILE }}
+          PUBLISHER: ${{ secrets.AZURE_SIGN_PUBLISHER }}
+          HAS_SP: ${{ secrets.AZURE_CLIENT_SECRET != '' && secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' }}
+        run: |
+          if [ "$HAS_SP" = "true" ] && [ -n "$ENDPOINT" ] && [ -n "$ACCOUNT" ] && [ -n "$PROFILE" ] && [ -n "$PUBLISHER" ]; then
+            npm pkg set \
+              build.win.azureSignOptions.endpoint="$ENDPOINT" \
+              build.win.azureSignOptions.codeSigningAccountName="$ACCOUNT" \
+              build.win.azureSignOptions.certificateProfileName="$PROFILE" \
+              build.win.azureSignOptions.publisherName="$PUBLISHER"
+            npm pkg set build.forceCodeSigning=true --json
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Code signing: ON ($ACCOUNT / $PROFILE)"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Code signing: OFF (Azure secrets not set - build will be unsigned)"
+          fi
+
       - name: Build installer
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: npx electron-builder --win --publish never
 
       - name: Verify artifacts
@@ -83,8 +118,17 @@ jobs:
           test -f dist/latest.yml || { echo "latest.yml missing"; exit 1; }
           test -f "dist/SnipNShare-Setup-${{ steps.ver.outputs.version }}.exe" || { echo "installer missing"; exit 1; }
 
+      - name: Verify signature
+        if: steps.sign.outputs.enabled == 'true'
+        shell: pwsh
+        run: |
+          $sig = Get-AuthenticodeSignature "dist/SnipNShare-Setup-${{ steps.ver.outputs.version }}.exe"
+          "Status: $($sig.Status)  Signer: $($sig.SignerCertificate.Subject)"
+          if ($sig.Status -ne 'Valid') { throw "Installer is not validly signed" }
+          if (-not $sig.TimeStamperCertificate) { throw "Installer signature is not timestamped" }
+
       - name: Publish GitHub release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: v${{ steps.ver.outputs.version }}
           name: v${{ steps.ver.outputs.version }}

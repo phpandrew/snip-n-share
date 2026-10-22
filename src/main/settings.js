@@ -38,6 +38,7 @@ function file() {
 function deepMerge(base, over) {
   const out = { ...base };
   for (const k of Object.keys(over || {})) {
+    if (k === '__proto__' || k === 'constructor' || k === 'prototype') continue;
     if (over[k] && typeof over[k] === 'object' && !Array.isArray(over[k]) && base[k] && typeof base[k] === 'object') {
       out[k] = deepMerge(base[k], over[k]);
     } else {

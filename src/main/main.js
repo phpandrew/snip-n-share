@@ -33,8 +33,9 @@ function openLink(url) {
   return Promise.resolve();
 }
 
-// No app window may open new windows or navigate away from its own page.
+// No app window may open new windows, navigate away from its own page, or use web permissions.
 app.on('web-contents-created', (_e, wc) => {
+  wc.session.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
   wc.setWindowOpenHandler(() => ({ action: 'deny' }));
   wc.on('will-navigate', (e) => e.preventDefault());
   wc.on('will-attach-webview', (e) => e.preventDefault());
@@ -239,8 +240,12 @@ function openSettings(tab = 'general') {
 }
 
 // ---------- IPC: editor ----------
+const asFormat = (f) => (f === 'png' ? 'png' : 'jpg');
+
 ipcMain.handle('editor:upload', async (_e, { dataUrl, format, width, height }) => {
-  const buffer = Buffer.from(dataUrl.split(',')[1], 'base64');
+  format = asFormat(format);
+  const buffer = Buffer.from(String(dataUrl).split(',')[1] || '', 'base64');
+  if (!buffer.length) return { ok: false, error: 'Nothing to upload' };
   try {
     const r = await finalize(buffer, format, { width, height });
     if (editorWin && !editorWin.isDestroyed()) editorWin.close();
@@ -258,6 +263,7 @@ ipcMain.handle('editor:copyImage', async (_e, { dataUrl }) => {
 });
 
 ipcMain.handle('editor:saveAs', async (_e, { dataUrl, format }) => {
+  format = asFormat(format);
   const r = await dialog.showSaveDialog(editorWin, {
     defaultPath: path.join(app.getPath('pictures'), `snip-${Date.now()}.${format}`),
     filters: [{ name: format.toUpperCase(), extensions: [format] }]
@@ -267,7 +273,16 @@ ipcMain.handle('editor:saveAs', async (_e, { dataUrl, format }) => {
   return { ok: true, path: r.filePath };
 });
 
-ipcMain.on('editor:savePrefs', (_e, prefs) => settings.set({ editor: prefs }));
+ipcMain.on('editor:savePrefs', (_e, prefs) => {
+  if (!prefs || typeof prefs !== 'object') return;
+  const clamp = (n, lo, hi, d) => (Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.round(n))) : d);
+  settings.set({ editor: {
+    tool: settings.DEFAULTS.enabledTools.includes(prefs.tool) ? prefs.tool : 'pen',
+    color: /^#[0-9a-f]{6}$/i.test(prefs.color) ? prefs.color : '#ff3b30',
+    size: clamp(prefs.size, 1, 10, 3),
+    blur: clamp(prefs.blur, 1, 10, 5)
+  } });
+});
 ipcMain.on('editor:saveOutput', (_e, patch) => {
   const p = {};
   if (patch.format === 'jpg' || patch.format === 'png') p.format = patch.format;
@@ -280,7 +295,8 @@ ipcMain.on('editor:cancel', () => {
 });
 
 // ---------- IPC: settings ----------
-ipcMain.handle('settings:get', () => {
+// Everything a renderer sees goes through here: Dropbox tokens never leave the main process.
+function publicSettings() {
   const s = settings.get();
   return {
     ...s,
@@ -288,7 +304,8 @@ ipcMain.handle('settings:get', () => {
     version: app.getVersion(),
     hotkeyRegistered: !!currentHotkey
   };
-});
+}
+ipcMain.handle('settings:get', () => publicSettings());
 
 ipcMain.handle('settings:set', (_e, patch) => {
   const before = settings.get();
@@ -302,7 +319,7 @@ ipcMain.handle('settings:set', (_e, patch) => {
     }
   }
   if ('launchAtStartup' in patch) applyStartup();
-  return { settings: settings.get(), hotkeyResult };
+  return { settings: publicSettings(), hotkeyResult };
 });
 
 ipcMain.handle('settings:testCustom', async (_e, cfg) => {
@@ -334,7 +351,10 @@ ipcMain.handle('history:remove', (_e, id) => history.remove(id));
 ipcMain.handle('history:clear', () => { history.clear(); return []; });
 ipcMain.handle('history:copy', (_e, url) => { clipboard.writeText(url); return true; });
 ipcMain.handle('history:open', (_e, url) => openLink(url));
-ipcMain.handle('history:showFile', (_e, p) => shell.showItemInFolder(p));
+ipcMain.handle('history:showFile', (_e, p) => {
+  const full = path.resolve(String(p || ''));
+  if (full.startsWith(history.dir() + path.sep) && fs.existsSync(full)) shell.showItemInFolder(full);
+});
 ipcMain.handle('history:openFolder', () => shell.openPath(history.dir()));
 
 ipcMain.handle('updater:check', () => { updater.check(true); return true; });
