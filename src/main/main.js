@@ -49,7 +49,9 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 function init() {
+  updater.startupCheck();
   createTray();
+  updater.onReady(() => buildTrayMenu());
   registerHotkey(settings.get().hotkey);
   applyStartup();
   updater.onStatus((s) => settingsWin && !settingsWin.isDestroyed() && settingsWin.webContents.send('updater:status', s));
@@ -67,7 +69,15 @@ function createTray() {
   const icon = nativeImage.createFromPath(path.join(ASSETS, 'tray.png'));
   tray = new Tray(icon);
   tray.setToolTip('Snip n Share');
+  buildTrayMenu();
+  tray.on('double-click', () => openSettings());
+}
+
+function buildTrayMenu() {
+  if (!tray) return;
+  const ready = updater.readyVersion && updater.readyVersion();
   tray.setContextMenu(Menu.buildFromTemplate([
+    ...(ready ? [{ label: `Restart to update to v${ready}`, click: () => updater.installNow() }, { type: 'separator' }] : []),
     { label: 'Capture region', click: () => startCapture() },
     { type: 'separator' },
     { label: 'History', click: () => openSettings('history') },
@@ -78,7 +88,6 @@ function createTray() {
     { label: `v${app.getVersion()}`, enabled: false },
     { label: 'Quit', click: () => app.quit() }
   ]));
-  tray.on('double-click', () => openSettings());
 }
 
 // ---------- hotkey ----------
@@ -358,5 +367,8 @@ ipcMain.handle('history:showFile', (_e, p) => {
 ipcMain.handle('history:openFolder', () => shell.openPath(history.dir()));
 
 ipcMain.handle('updater:check', () => { updater.check(true); return true; });
+ipcMain.handle('updater:info', () => ({ ...updater.installInfo(), ready: updater.readyVersion() }));
+ipcMain.handle('updater:openLog', () => shell.openPath(updater.logPath()));
+ipcMain.handle('updater:install', () => { updater.installNow(); return true; });
 ipcMain.handle('app:capture', () => { startCapture(); return true; });
 ipcMain.handle('app:openExternal', (_e, url) => openLink(url));

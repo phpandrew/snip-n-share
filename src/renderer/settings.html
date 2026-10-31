@@ -159,6 +159,9 @@
       <div class="check"><input type="checkbox" id="autoCheckUpdates"><label style="margin:0" for="autoCheckUpdates">Check for updates automatically on startup</label></div>
       <div class="row"><button id="checkUpdates" class="primary">Check for updates</button></div>
       <div class="msg" id="updMsg"></div>
+      <div class="row" id="installRow" style="display:none"><button id="installUpdate" class="primary">Restart and install</button></div>
+      <div class="help">Installed at <code id="installPath"></code> <span id="installMode"></span></div>
+      <div class="help"><a href="#" id="openUpdateLog">Open update log</a></div>
       <div class="help">Updates come from GitHub Releases and install on restart.</div>
     </section>
   </main>

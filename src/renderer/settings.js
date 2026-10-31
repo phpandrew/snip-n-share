@@ -197,6 +197,16 @@ $('histClear').addEventListener('click', async () => {
 
 // ---------- updates ----------
 $('checkUpdates').addEventListener('click', () => { msg('updMsg', 'Checking…'); window.api.checkUpdates(); });
+$('openUpdateLog').addEventListener('click', (e) => { e.preventDefault(); window.api.openUpdateLog(); });
+$('installUpdate').addEventListener('click', () => window.api.installUpdate());
+async function loadUpdaterInfo() {
+  const i = await window.api.updaterInfo();
+  $('installPath').textContent = i.path;
+  $('installMode').textContent = i.perMachine ? '(all users — updates need admin approval)' : '(just you)';
+  $('installRow').style.display = i.ready ? '' : 'none';
+  if (i.ready) $('installUpdate').textContent = `Restart and install v${i.ready}`;
+}
+loadUpdaterInfo();
 window.api.onUpdaterStatus((s) => {
   const map = {
     checking: ['Checking for updates…', ''],
@@ -208,6 +218,7 @@ window.api.onUpdaterStatus((s) => {
   };
   const [t, c] = map[s.state] || ['', ''];
   msg('updMsg', t, c);
+  if (s.state === 'downloaded') loadUpdaterInfo();
 });
 
 load();
